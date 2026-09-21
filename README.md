@@ -146,8 +146,8 @@ $$\Delta \text{Net Margin} = \Delta \text{Volume Effect} + \Delta \text{Price Ef
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/imofficialharsh/Ai-MetricBridge.git
-cd Ai-MetricBridge
+git clone https://github.com/imofficialharsh/MetricBridge-Ai.git
+cd MetricBridge-Ai
 ```
 
 ### 2. Create and Activate Virtual Environment
@@ -211,7 +211,7 @@ python -m pytest -v
 
 1. Push your repository to GitHub.
 2. Navigate to [share.streamlit.io](https://share.streamlit.io/) and create a **New app**.
-3. Select your repository: `imofficialharsh/Ai-MetricBridge`, branch: `main`, main file path: `app.py`.
+3. Select your repository: `imofficialharsh/MetricBridge-Ai`, branch: `main`, main file path: `app.py`.
 4. In **Advanced settings → Secrets**, paste:
    ```toml
    GROQ_API_KEY = "gsk_your_groq_api_key_here"
