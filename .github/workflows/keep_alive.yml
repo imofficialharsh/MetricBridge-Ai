@@ -28,6 +28,15 @@ jobs:
       - name: Run Playwright Keep-Alive Probe
         env:
           # Priority: GitHub Repo Variable > GitHub Secret > Direct fallback URL
-          STREAMLIT_APP_URL: ${{ vars.STREAMLIT_APP_URL || secrets.STREAMLIT_APP_URL || 'https://metric-bridge.streamlit.app/' }}
+          STREAMLIT_APP_URL: ${{ vars.STREAMLIT_APP_URL || secrets.STREAMLIT_APP_URL || 'https://metricbridge-ai.streamlit.app/' }}
         run: |
           python scripts/keep_alive.py
+
+      - name: Upload Debug Screenshot on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: keep-alive-failure-screenshot
+          path: keep_alive_timeout.png
+          if-no-files-found: ignore
+
