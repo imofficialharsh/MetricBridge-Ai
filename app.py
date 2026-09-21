@@ -53,24 +53,21 @@ st.markdown(
             color: #F3F4F6 !important;
         }
 
-        /* Clean Streamlit Layout with Optimal Start Margin & Spacing */
+        /* Clean Streamlit Layout with Optimal Native Spacing */
         .block-container {
-            padding-top: 3.75rem !important;
+            padding-top: 1.5rem !important;
             padding-bottom: 4rem !important;
             max-width: 100% !important;
         }
 
-        /* Streamlit Header: Dark Glassmorphic Bar Preserving Share, Star, and Toolbar Controls */
+        /* Streamlit Header: Simple & Clean matching native Streamlit Navbar */
         header[data-testid="stHeader"] {
-            background: rgba(14, 17, 23, 0.88) !important;
-            backdrop-filter: blur(12px) !important;
-            -webkit-backdrop-filter: blur(12px) !important;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
-            height: 3.25rem !important;
-            min-height: 3.25rem !important;
-            display: flex !important;
-            align-items: center !important;
-            overflow: visible !important;
+            background: transparent !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            border: none !important;
+            border-bottom: none !important;
+            box-shadow: none !important;
             z-index: 99999 !important;
             visibility: visible !important;
         }
@@ -90,7 +87,7 @@ st.markdown(
             gap: 0.65rem !important;
         }
 
-        /* Streamlit Header Toolbar & Actions: Ensure Share, Star, Fork, GitHub, and Menu are Fully Visible */
+        /* Streamlit Header Toolbar & Actions: Native, Clean & Visible */
         [data-testid="stToolbar"],
         [data-testid="stHeaderActionElements"],
         div[data-testid="stAppDeployButton"] {
@@ -100,6 +97,7 @@ st.markdown(
             align-items: center !important;
             opacity: 1 !important;
             gap: 0.35rem !important;
+            border: none !important;
         }
 
         /* Header action buttons and icons (Share, Star, Edit, 3-dots Menu) */
@@ -111,6 +109,8 @@ st.markdown(
         [data-testid="stHeaderActionElements"] a {
             color: #9CA3AF !important;
             background-color: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
             border-radius: 6px !important;
             transition: all 0.15s ease !important;
             visibility: visible !important;
@@ -131,24 +131,6 @@ st.markdown(
         [data-testid="stHeaderActionElements"] svg {
             fill: currentColor !important;
             stroke: currentColor !important;
-        }
-
-        /* Styled Share / Deploy Button */
-        div[data-testid="stAppDeployButton"] button {
-            background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%) !important;
-            color: #FFFFFF !important;
-            border: 1px solid rgba(56, 189, 248, 0.4) !important;
-            border-radius: 6px !important;
-            font-weight: 600 !important;
-            font-size: 0.78rem !important;
-            padding: 4px 12px !important;
-            display: inline-flex !important;
-            visibility: visible !important;
-        }
-
-        div[data-testid="stAppDeployButton"] button:hover {
-            background: linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%) !important;
-            box-shadow: 0 0 10px rgba(56, 189, 248, 0.4) !important;
         }
 
         /* The Reopen / Expand Sidebar Button (>>) when sidebar is collapsed */
@@ -1475,9 +1457,6 @@ with col_head_right:
         f"""
         <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; gap: 6px; padding-top: 2px;">
             <div style="display: flex; gap: 8px; align-items: center; justify-content: flex-end;">
-                <div class="author-pill">
-                    <span style="color: #38BDF8; font-size: 0.82rem;">✦</span> Built by <b>Harsh Kumar</b>
-                </div>
                 <div class="status-pill {status_class}">
                     <span>{status_sym} Net Margin {margin_pct:+.1f}%</span>
                 </div>
@@ -1598,7 +1577,6 @@ st.markdown(
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="#38BDF8" style="vertical-align: -2px; margin-right: 4px;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
                     Executive Strategy Briefing
                 </span>
-                <span class="briefing-badge">{active_model}</span>
             </div>
             <div class="pvm-pill-row">
                 <div class="pvm-pill {vol_class}">
