@@ -53,9 +53,11 @@ st.markdown(
             color: #F3F4F6 !important;
         }
 
-        /* Clean Streamlit Layout with Optimal Native Spacing */
-        .block-container {
-            padding-top: 1.5rem !important;
+        /* Clean Streamlit Layout: Align main content start with sidebar */
+        .block-container,
+        [data-testid="stMain"] .block-container,
+        .main .block-container {
+            padding-top: 4.25rem !important;
             padding-bottom: 4rem !important;
             max-width: 100% !important;
         }
@@ -70,6 +72,18 @@ st.markdown(
             box-shadow: none !important;
             z-index: 99999 !important;
             visibility: visible !important;
+            pointer-events: none !important;
+        }
+
+        /* Allow interactions on the actual header toolbar elements (Deploy, Menu, Sidebar Toggle) */
+        header[data-testid="stHeader"] button,
+        header[data-testid="stHeader"] a,
+        [data-testid="stToolbar"],
+        [data-testid="stHeaderActionElements"],
+        div[data-testid="stAppDeployButton"],
+        [data-testid="stSidebarCollapseButton"],
+        [data-testid="stExpandSidebarButton"] {
+            pointer-events: auto !important;
         }
 
         /* Refined Spacing Rhythm for Dashboards */
