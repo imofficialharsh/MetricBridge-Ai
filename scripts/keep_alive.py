@@ -51,6 +51,18 @@ def probe_streamlit_app(url: str):
             page.wait_for_timeout(6000)
             print(f"📄 Page Title: {page.title()}")
 
+            # Check if Streamlit Cloud returned a 404 or access denied page
+            if "errors/not_found" in page.url or "not_found" in page.url:
+                print(f"❌ Error: The URL '{url}' does not exist on Streamlit Community Cloud.")
+                print(f"🔗 Streamlit Cloud redirected to: {page.url}")
+                print(f"👉 Please check the exact URL of your deployed app in your browser!")
+                print(f"👉 Then update the STREAMLIT_APP_URL variable in GitHub Settings -> Secrets and variables -> Actions -> Variables.")
+                try:
+                    page.screenshot(path="keep_alive_timeout.png", full_page=True)
+                except Exception:
+                    pass
+                sys.exit(1)
+
             # 1. Search for Wake-Up Button (both top frame & iframes)
             wake_up_patterns = [
                 "Yes, get this app back up!",
@@ -91,35 +103,51 @@ def probe_streamlit_app(url: str):
                 print("⚡ Clicking wake-up button...")
                 wake_button.click()
                 print("⏳ Waiting for app to awaken and hydrate (up to 120s)...")
-                page.wait_for_selector(
-                    '[data-testid="stAppViewContainer"], header[data-testid="stHeader"], .stApp',
-                    state="visible",
-                    timeout=120000,
-                )
-                print("✅ App successfully awakened from sleep state!")
-            else:
-                # 2. Check if app is currently spinning up / loading
-                loading_patterns = ["Cooking up your app", "Your app is loading", "Spinning up", "Connecting"]
-                is_loading = False
-                for lp in loading_patterns:
+                page.wait_for_timeout(10000)
+
+            # 2. Check if app is active and rendered (checking main frame and iframes)
+            print("🔍 Verifying active Streamlit application state...")
+            app_loaded = False
+
+            # Wait up to 60s for app container in main frame or any frame
+            start_wait = time.time()
+            while time.time() - start_wait < 60:
+                # Check top frame
+                try:
+                    if page.locator('[data-testid="stAppViewContainer"], header[data-testid="stHeader"], .stApp').count() > 0:
+                        app_loaded = True
+                        break
+                except Exception:
+                    pass
+
+                # Check iframes (Streamlit Cloud often nests app in an iframe)
+                for frame in page.frames:
                     try:
-                        if page.locator(f'text="{lp}"').count() > 0:
-                            is_loading = True
-                            print(f"⏳ Streamlit Cloud is preparing app ('{lp}'). Waiting for completion...")
+                        if frame.locator('[data-testid="stAppViewContainer"], header[data-testid="stHeader"], .stApp').count() > 0:
+                            app_loaded = True
+                            print(f"✅ App container detected inside iframe!")
                             break
                     except Exception:
                         pass
 
-                timeout_duration = 90000 if is_loading else 45000
-                print(f"🔍 Checking if app is active and rendered (timeout: {timeout_duration//1000}s)...")
-                
-                # Check for active Streamlit container
-                page.wait_for_selector(
-                    '[data-testid="stAppViewContainer"], header[data-testid="stHeader"], .stApp',
-                    state="visible",
-                    timeout=timeout_duration,
-                )
+                if app_loaded:
+                    break
+                page.wait_for_timeout(3000)
+
+            if app_loaded:
                 print("✅ App is active, responsive, and fully hydrated!")
+            else:
+                # If still not found, check if it's loading
+                loading_text = page.locator('text="Cooking up your app", text="Your app is loading"').first
+                if loading_text.is_visible():
+                    print("⏳ App is currently spinning up on Streamlit Cloud (in progress).")
+                else:
+                    print(f"⚠️ Warning: Specific Streamlit container was not detected within 60s.")
+                    print(f"📄 Page Title: {page.title()}")
+                    print(f"🔗 Page URL: {page.url}")
+                    page.screenshot(path="keep_alive_timeout.png", full_page=True)
+                    sys.exit(1)
+
 
             print(f"📄 Final Page Title: {page.title()}")
             print("🎉 Keep-alive probe completed successfully!")
