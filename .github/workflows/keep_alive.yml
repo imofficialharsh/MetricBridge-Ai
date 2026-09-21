@@ -28,7 +28,7 @@ jobs:
       - name: Run Playwright Keep-Alive Probe
         env:
           # Priority: GitHub Repo Variable > GitHub Secret > Direct fallback URL
-          STREAMLIT_APP_URL: ${{ vars.STREAMLIT_APP_URL || secrets.STREAMLIT_APP_URL || 'https://metricbridge-ai.streamlit.app/' }}
+          STREAMLIT_APP_URL: ${{ vars.STREAMLIT_APP_URL || secrets.STREAMLIT_APP_URL || 'https://metricsbridge-ai.streamlit.app/' }}
         run: |
           python scripts/keep_alive.py
 

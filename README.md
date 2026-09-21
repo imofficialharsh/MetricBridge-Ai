@@ -220,7 +220,7 @@ python -m pytest -v
 5. Click **Deploy**.
 6. In your GitHub repository settings under **Settings → Secrets and variables → Actions**, add a variable:
    - Name: `STREAMLIT_APP_URL`
-   - Value: `https://<your-app-name>.streamlit.app/`
+   - Value: `https://metricsbridge-ai.streamlit.app/`
    This activates the automated 7-hour keep-alive probe to keep your deployed app awake indefinitely.
 
 ---

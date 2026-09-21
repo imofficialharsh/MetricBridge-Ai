@@ -10,7 +10,7 @@ import sys
 import time
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-STREAMLIT_APP_URL = os.getenv("STREAMLIT_APP_URL", "https://metricbridge-ai.streamlit.app/").strip()
+STREAMLIT_APP_URL = os.getenv("STREAMLIT_APP_URL", "https://metricsbridge-ai.streamlit.app/").strip()
 
 
 def probe_streamlit_app(url: str):
