@@ -42,13 +42,25 @@ except ImportError:
 
 # Pre-configured Backend AI Engine Settings
 def _resolve_backend_secret(key: str, default: str = "") -> str:
-    val = os.getenv(key)
-    if val:
-        return val
+    val = os.getenv(key) or os.getenv(key.lower()) or os.getenv(key.upper())
+    if val and str(val).strip():
+        return str(val).strip()
     try:
-        return st.secrets.get(key, default)
+        if key in st.secrets and str(st.secrets[key]).strip():
+            return str(st.secrets[key]).strip()
+        if key.upper() in st.secrets and str(st.secrets[key.upper()]).strip():
+            return str(st.secrets[key.upper()]).strip()
+        if key.lower() in st.secrets and str(st.secrets[key.lower()]).strip():
+            return str(st.secrets[key.lower()]).strip()
+        for sec in ["groq", "general", "default"]:
+            if sec in st.secrets and isinstance(st.secrets[sec], dict):
+                sub = st.secrets[sec]
+                found = sub.get(key) or sub.get(key.lower()) or sub.get(key.upper()) or sub.get("api_key")
+                if found and str(found).strip():
+                    return str(found).strip()
     except Exception:
-        return default
+        pass
+    return default
 
 BACKEND_AI_MODEL = _resolve_backend_secret("GROQ_MODEL", "qwen/qwen3.8-27b")
 BACKEND_GROQ_KEY = _resolve_backend_secret("GROQ_API_KEY", "")
@@ -1526,6 +1538,19 @@ with st.sidebar:
         # Pre-configured Backend AI Model & Credentials
         active_model = BACKEND_AI_MODEL
         groq_api_key = BACKEND_GROQ_KEY
+
+        # Optional UI Input fallback if no key detected in secrets or environment
+        if not groq_api_key:
+            with st.expander("🔑 Groq AI Key Setup", expanded=False):
+                st.caption("Enter a Groq key or configure `GROQ_API_KEY` in Streamlit Cloud Secrets.")
+                user_key_input = st.text_input(
+                    "Groq API Key",
+                    type="password",
+                    placeholder="gsk_...",
+                    key="sidebar_user_groq_key",
+                )
+                if user_key_input and user_key_input.strip():
+                    groq_api_key = user_key_input.strip()
 
         custom_inquiry = st.text_input(
             "Strategic Focus Question (Optional)",

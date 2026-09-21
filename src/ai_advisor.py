@@ -129,6 +129,29 @@ Net margin proxy {margin_direction} by **R$ {abs(b.net_margin_delta):,.2f}** ({(
 *Generated via deterministic financial rules. Pre-configure GROQ_API_KEY in the backend environment for AI-synthesized strategic commentary.*"""
 
 
+def _resolve_groq_api_key(passed_key: Optional[str] = None) -> str:
+    """Resolves Groq API key checking arguments, environment, and Streamlit secrets."""
+    if passed_key and str(passed_key).strip():
+        return str(passed_key).strip()
+    env_key = os.getenv("GROQ_API_KEY") or os.getenv("groq_api_key")
+    if env_key and str(env_key).strip():
+        return str(env_key).strip()
+    try:
+        import streamlit as st
+        for k in ["GROQ_API_KEY", "groq_api_key"]:
+            if k in st.secrets and str(st.secrets[k]).strip():
+                return str(st.secrets[k]).strip()
+        for sec in ["groq", "general", "default"]:
+            if sec in st.secrets and isinstance(st.secrets[sec], dict):
+                sub = st.secrets[sec]
+                found = sub.get("GROQ_API_KEY") or sub.get("groq_api_key") or sub.get("api_key")
+                if found and str(found).strip():
+                    return str(found).strip()
+    except Exception:
+        pass
+    return ""
+
+
 def generate_executive_briefing(
     report: RootCauseReport,
     api_key: Optional[str] = None,
@@ -139,8 +162,8 @@ def generate_executive_briefing(
     Calls the Groq API to generate an executive-ready root cause analysis briefing.
     Adheres to strict financial grounding rules to avoid hallucination.
     """
-    resolved_api_key = api_key or os.getenv("GROQ_API_KEY")
-    if not resolved_api_key or not resolved_api_key.strip():
+    resolved_api_key = _resolve_groq_api_key(api_key)
+    if not resolved_api_key:
         return generate_deterministic_fallback(report)
 
     # Convert Pydantic model to clean JSON payload
@@ -292,12 +315,18 @@ def ask_metric_copilot(
             "*Please submit a commercial analytics or metric-related question!*"
         )
 
-    resolved_api_key = api_key or os.getenv("GROQ_API_KEY")
-    if not resolved_api_key or not resolved_api_key.strip():
+    resolved_api_key = _resolve_groq_api_key(api_key)
+    if not resolved_api_key:
         return (
-            "**AI Backend Key Required**: A valid Groq API Key was not detected in the backend environment. "
-            "Please configure `GROQ_API_KEY` in your `.env` or system environment variables to chat with Metric Copilot."
+            "⚠️ **Groq API Key Required**: A valid Groq API Key was not detected in the deployment environment.\n\n"
+            "**To enable live AI Copilot:**\n"
+            "1. In **Streamlit Cloud**: Click **Manage app** (bottom-right) ➔ **⋮ ➔ Settings ➔ Secrets**, and add:\n"
+            "   ```toml\n"
+            "   GROQ_API_KEY = \"gsk_your_key_here\"\n"
+            "   ```\n"
+            "2. **Or directly in the sidebar**: Enter your Groq API Key in the sidebar under **🔑 Groq AI Key Setup**."
         )
+
 
     payload = report.model_dump()
     payload_json = json.dumps(payload, indent=2)
