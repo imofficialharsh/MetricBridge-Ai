@@ -90,3 +90,32 @@ def test_full_report_generation(engine):
     assert report.baseline_period == "2017-10"
     assert report.comparison_period == "2017-11"
     assert len(report.regional_performance) == 5
+
+
+def test_query_fact_table(engine):
+    # 1. Test South region category turnover query
+    south_res = engine.query_fact_table(
+        group_by=["category"],
+        metrics=["turnover", "units"],
+        filters={"region": "South"},
+        limit=5,
+    )
+    assert len(south_res) == 5
+    assert "product_category_name_english" in south_res[0]
+    assert "gross_revenue" in south_res[0]
+    assert "units" in south_res[0]
+    assert south_res[0]["gross_revenue"] >= south_res[1]["gross_revenue"]
+
+    # 2. Test multi-filter with period and state
+    sp_res = engine.query_fact_table(
+        group_by=["city"],
+        metrics=["gross_revenue", "orders"],
+        filters={"state": "SP", "year_month": "2017-11"},
+        limit=3,
+    )
+    assert len(sp_res) == 3
+    assert "customer_city" in sp_res[0]
+    assert "gross_revenue" in sp_res[0]
+    assert "orders" in sp_res[0]
+    assert sp_res[0]["gross_revenue"] >= sp_res[1]["gross_revenue"]
+

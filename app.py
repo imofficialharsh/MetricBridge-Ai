@@ -13,12 +13,19 @@ Features:
 
 import os
 import re
+import time
 import html
 from typing import Optional
 import streamlit as st
 import streamlit.components.v1 as components
 import plotly.graph_objects as go
 import pandas as pd
+
+import importlib
+import src.engine
+import src.ai_advisor
+importlib.reload(src.engine)
+importlib.reload(src.ai_advisor)
 
 from src.engine import MetricEngine
 from src.schema import RootCauseReport
@@ -27,12 +34,28 @@ from src.ai_advisor import (
     ask_metric_copilot,
     DEFAULT_GROQ_MODEL,
 )
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Pre-configured Backend AI Engine Settings
+def _resolve_backend_secret(key: str, default: str = "") -> str:
+    val = os.getenv(key)
+    if val:
+        return val
+    try:
+        return st.secrets.get(key, default)
+    except Exception:
+        return default
+
+BACKEND_AI_MODEL = _resolve_backend_secret("GROQ_MODEL", "qwen/qwen3.8-27b")
+BACKEND_GROQ_KEY = _resolve_backend_secret("GROQ_API_KEY", "")
 
 # -----------------------------------------------------------------------------
 # Streamlit Page Config
 # -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="MetricBridge | Commercial RCA Engine",
+    page_title="AI Metric Bridge | Commercial RCA Engine",
     page_icon="✦",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -62,17 +85,19 @@ st.markdown(
             max-width: 100% !important;
         }
 
-        /* Streamlit Header: Simple & Clean matching native Streamlit Navbar */
+        /* Streamlit Header: Sleek Navbar with Theme Matching Dark Background */
         header[data-testid="stHeader"] {
-            background: transparent !important;
-            backdrop-filter: none !important;
-            -webkit-backdrop-filter: none !important;
-            border: none !important;
-            border-bottom: none !important;
-            box-shadow: none !important;
+            background-color: #0E1117 !important;
+            border-bottom: 1px solid #232736 !important;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35) !important;
+            height: 3.5rem !important;
+            min-height: 3.5rem !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: flex-end !important;
             z-index: 99999 !important;
             visibility: visible !important;
-            pointer-events: none !important;
+            pointer-events: auto !important;
         }
 
         /* Allow interactions on the actual header toolbar elements (Deploy, Menu, Sidebar Toggle) */
@@ -101,7 +126,13 @@ st.markdown(
             gap: 0.65rem !important;
         }
 
-        /* Streamlit Header Toolbar & Actions: Native, Clean & Visible */
+        /* Streamlit Header Toolbar & Actions: Centered on Navbar */
+        [data-testid="stToolbar"] {
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            right: 1.25rem !important;
+        }
+
         [data-testid="stToolbar"],
         [data-testid="stHeaderActionElements"],
         div[data-testid="stAppDeployButton"] {
@@ -110,7 +141,7 @@ st.markdown(
             display: inline-flex !important;
             align-items: center !important;
             opacity: 1 !important;
-            gap: 0.35rem !important;
+            gap: 0.45rem !important;
             border: none !important;
         }
 
@@ -142,9 +173,17 @@ st.markdown(
 
         header[data-testid="stHeader"] svg,
         [data-testid="stToolbar"] svg,
-        [data-testid="stHeaderActionElements"] svg {
+        [data-testid="stHeaderActionElements"] svg,
+        [data-testid="stStatusWidget"] svg {
             fill: currentColor !important;
-            stroke: currentColor !important;
+            stroke: none !important;
+        }
+
+        header[data-testid="stHeader"] svg path,
+        [data-testid="stToolbar"] svg path,
+        [data-testid="stHeaderActionElements"] svg path,
+        [data-testid="stStatusWidget"] svg path {
+            stroke: none !important;
         }
 
         /* The Reopen / Expand Sidebar Button (>>) when sidebar is collapsed */
@@ -177,8 +216,13 @@ st.markdown(
         [data-testid="stExpandSidebarButton"] svg,
         button[data-testid="stExpandSidebarButton"] svg {
             fill: #38BDF8 !important;
-            stroke: #38BDF8 !important;
+            stroke: none !important;
             color: #38BDF8 !important;
+        }
+
+        [data-testid="stExpandSidebarButton"] svg path,
+        button[data-testid="stExpandSidebarButton"] svg path {
+            stroke: none !important;
         }
 
         /* The Collapse Sidebar Button (<<) inside expanded sidebar */
@@ -1080,7 +1124,57 @@ st.markdown(
         .copilot-subtitle {
             font-size: 0.78rem;
             color: #9CA3AF;
-            margin-bottom: 1.2rem;
+            margin-bottom: 0.75rem;
+        }
+
+        /* Copilot Suggested Questions Guide */
+        .copilot-guide-box {
+            background: rgba(18, 24, 37, 0.75);
+            border: 1px solid #232E42;
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 0.85rem;
+        }
+
+        .copilot-guide-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #38BDF8;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .copilot-guide-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 8px;
+        }
+
+        .copilot-guide-chip {
+            background: #141B28;
+            border: 1px solid #243247;
+            border-radius: 6px;
+            padding: 7px 10px;
+            font-size: 0.73rem;
+            line-height: 1.35;
+        }
+
+        .copilot-guide-chip strong {
+            color: #38BDF8;
+            display: block;
+            font-size: 0.71rem;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .copilot-guide-chip span {
+            color: #94A3B8;
+            font-size: 0.72rem;
         }
 
         /* Chat Message Avatars in Sleek Blue */
@@ -1271,7 +1365,7 @@ def render_executive_table(
 # =============================================================================
 # RCA METHODOLOGY BLUEPRINT MODAL
 # =============================================================================
-@st.dialog("MetricBridge — RCA Methodology & Mathematical Framework", width="large")
+@st.dialog("AI Metric Bridge — RCA Methodology & Mathematical Framework", width="large")
 def show_methodology_dialog():
     """Display comprehensive system architecture diagram and engineering breakdown."""
     st.markdown(
@@ -1313,7 +1407,7 @@ def show_methodology_dialog():
 
                 subgraph AI ["4. Grounded Groq Cloud LPU Synthesis"]
                     PVM & CategoryRCA & RegionalRCA --> Payload["Strict Analytical Payload (Zero Hallucination)"]
-                    Payload --> Groq["Groq Cloud LPU (llama-3.3-70b-versatile)"]
+                    Payload --> Groq["Groq Cloud LPU (qwen/qwen3.8-27b)"]
                     Groq --> Briefing["Executive Strategy Briefing"]
                     Groq --> Copilot["Interactive Grounded Metric Copilot"]
                 end
@@ -1324,6 +1418,46 @@ def show_methodology_dialog():
         scrolling=True,
     )
 
+    st.markdown(
+        """
+        <div style="margin-top: 14px; margin-bottom: 6px;">
+            <div style="font-size: 0.88rem; font-weight: 700; color: #38BDF8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px;">
+                Key Architectural Decisions (Why Built This Way)
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
+                <div style="background: #12151E; border: 1px solid #282D3D; border-radius: 10px; padding: 14px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <span style="font-size: 1.05rem;">🎯</span>
+                        <span style="font-weight: 700; color: #F3F4F6; font-size: 0.84rem;">1. Deterministic Math First</span>
+                    </div>
+                    <div style="font-size: 0.77rem; color: #94A3B8; line-height: 1.5;">
+                        <strong style="color: #38BDF8;">Never let LLMs do math.</strong> Polars computes 100% exact variance deltas in under 5ms. The LLM only receives pre-calculated numbers to write the briefing, eliminating hallucinations.
+                    </div>
+                </div>
+                <div style="background: #12151E; border: 1px solid #282D3D; border-radius: 10px; padding: 14px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <span style="font-size: 1.05rem;">🔍</span>
+                        <span style="font-weight: 700; color: #F3F4F6; font-size: 0.84rem;">2. True Root Cause (PVM)</span>
+                    </div>
+                    <div style="font-size: 0.77rem; color: #94A3B8; line-height: 1.5;">
+                        <strong style="color: #34D399;">Beyond surface KPIs.</strong> Rather than just reporting revenue changes, Price-Volume-Mix decomposes margin shifts into volume expansion, pricing, and freight logistics drag.
+                    </div>
+                </div>
+                <div style="background: #12151E; border: 1px solid #282D3D; border-radius: 10px; padding: 14px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <span style="font-size: 1.05rem;">⚡</span>
+                        <span style="font-weight: 700; color: #F3F4F6; font-size: 0.84rem;">3. Fast & Low Cost</span>
+                    </div>
+                    <div style="font-size: 0.77rem; color: #94A3B8; line-height: 1.5;">
+                        <strong style="color: #FBBF24;">High performance at near-zero cost.</strong> 110k rows are scanned in-memory via compressed Parquet, sending only a small JSON payload to Groq for lightning-fast inference.
+                    </div>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
 # -----------------------------------------------------------------------------
 # 1. Combined Modern Sidebar Modules (Matching DocMind)
 # -----------------------------------------------------------------------------
@@ -1332,7 +1466,7 @@ with st.sidebar:
     st.markdown(
         """
         <div class="brand-container">
-            <div class="brand-title">MetricBridge</div>
+            <div class="brand-title">AI Metric Bridge</div>
             <div class="brand-sub">COMMERCIAL INTELLIGENCE & RCA</div>
             <div class="creator-badge"><span style="color: #38BDF8; font-size: 0.82rem;">✦</span> Engineered by Harsh Kumar</div>
         </div>
@@ -1345,7 +1479,7 @@ with st.sidebar:
 
     # Combined Controls Section (All Dropdowns and Fields in the Same Section)
     st.markdown(
-        '<div class="sidebar-section-title">ANALYSIS & AI CONTROLS</div>',
+        '<div class="sidebar-section-title">ANALYSIS CONTROLS</div>',
         unsafe_allow_html=True,
     )
     with st.container(border=True):
@@ -1387,26 +1521,9 @@ with st.sidebar:
             help="Number of top categories and states analyzed in deep dive diagnostics.",
         )
 
-        model_options = [
-            "llama-3.3-70b-versatile",
-            "llama-3.1-70b-versatile",
-            "llama-3.1-8b-instant",
-            "mixtral-8x7b-32768",
-            "Custom Model...",
-        ]
-        selected_model = st.selectbox("LLM Model", model_options, index=0)
-        if selected_model == "Custom Model...":
-            active_model = st.text_input("Custom Model ID", value="llama-3.3-70b-versatile").strip()
-        else:
-            active_model = selected_model
-
-        groq_api_key = st.text_input(
-            "Groq API Key (Optional Override)",
-            value=os.getenv("GROQ_API_KEY", ""),
-            type="password",
-            placeholder="gsk_...",
-            help="Pre-configured server key is active. Enter a personal key only if you wish to override.",
-        )
+        # Pre-configured Backend AI Model & Credentials
+        active_model = BACKEND_AI_MODEL
+        groq_api_key = BACKEND_GROQ_KEY
 
         custom_inquiry = st.text_input(
             "Strategic Focus Question (Optional)",
@@ -1417,6 +1534,7 @@ with st.sidebar:
 
     if st.button("Clear Copilot Chat", use_container_width=True):
         st.session_state.chat_history = []
+        st.session_state.last_chat_timestamp = 0.0
         st.rerun()
 
     st.markdown(
@@ -1460,7 +1578,7 @@ status_sym = "▲" if margin_delta >= 0 else "▼"
 # -----------------------------------------------------------------------------
 col_head_left, col_head_right = st.columns([3.0, 2.0], gap="medium")
 with col_head_left:
-    st.markdown('<div class="main-title">MetricBridge: Commercial RCA Engine</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-title">AI Metric Bridge: Commercial RCA Engine</div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="subtitle">Enterprise Commercial Root Cause Analysis with Price-Volume-Mix Decomposition, '
         'Regional Logistics Diagnostics, and Groq-Powered Executive Briefing.</div>',
@@ -2109,18 +2227,60 @@ st.markdown(
             <span class="copilot-title">Metric Copilot</span>
         </div>
         <div class="copilot-subtitle">
-            Grounded commercial finance AI assistant. Answers are strictly based on pre-calculated metrics for the selected time window.
+            Grounded commercial finance AI assistant. Explores PVM drivers, regional logistics, and live product-level fact table queries.
         </div>
+        <div class="copilot-guide-box">
+            <div class="copilot-guide-title">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="#38BDF8"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                <span>What kind of questions you can ask:</span>
+            </div>
+            <div class="copilot-guide-grid">
+                <div class="copilot-guide-chip">
+                    <strong>📊 PVM Math & Variance</strong>
+                    <span>"Why did net margin contract?"<br>"Price vs volume effect?"</span>
+                </div>
+                <div class="copilot-guide-chip">
+                    <strong>🗺️ Regional Products & Sales</strong>
+                    <span>"What products sold in South & turnover?"<br>"Top categories in São Paulo"</span>
+                </div>
+                <div class="copilot-guide-chip">
+                    <strong>📦 Category Movers</strong>
+                    <span>"Top margin contributor categories"<br>"Primary category detractors"</span>
+                </div>
+                <div class="copilot-guide-chip">
+                    <strong>🚚 Freight Logistics Drag</strong>
+                    <span>"Which states had highest freight burden?"<br>"How did AOV shift?"</span>
+                </div>
+            </div>
+        </div>
+    </div>
     """,
     unsafe_allow_html=True,
 )
+
+# Interactive 1-Click Suggestion Chips
+col_chip1, col_chip2, col_chip3, col_chip4 = st.columns(4)
+with col_chip1:
+    if st.button("🗺️ South Products & Turnover", key="chip_south", use_container_width=True):
+        st.session_state.pending_query = "What are the products sold in the South and their total turnover per product?"
+with col_chip2:
+    if st.button("📊 Price vs Volume Effect", key="chip_pvm", use_container_width=True):
+        st.session_state.pending_query = "What was the price effect versus volume effect between baseline and comparison periods?"
+with col_chip3:
+    if st.button("📦 Top Category Drivers", key="chip_cat", use_container_width=True):
+        st.session_state.pending_query = "Which product categories contributed the most to net margin expansion?"
+with col_chip4:
+    if st.button("🚚 High Freight Burden States", key="chip_frt", use_container_width=True):
+        st.session_state.pending_query = "Which Brazilian states had the highest freight burden rate?"
+
+st.markdown("<div style='margin-top: 0.5rem;'>", unsafe_allow_html=True)
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = [
         {
             "role": "assistant",
             "content": (
-                f"Hello! I am your **MetricBridge Copilot** for the **{period_a} ➔ {period_b}** comparison. "
+                f"Hello! I am your **AI Metric Bridge Copilot** for the **{period_a} ➔ {period_b}** comparison. "
                 "Ask me any question about revenue, PVM effects, freight logistics drag, or category and regional performance."
             ),
         }
@@ -2134,25 +2294,75 @@ for msg in st.session_state.chat_history:
 st.markdown("</div>", unsafe_allow_html=True)
 
 # Docked, width-constrained chat input at the bottom of the viewport
-user_query = st.chat_input("Ask any question about these metrics (e.g., 'What was the primary driver of margin expansion?')")
+CHAT_COOLDOWN_SECONDS = 30
+if "last_chat_timestamp" not in st.session_state:
+    st.session_state.last_chat_timestamp = 0.0
 
-if user_query:
-    # Display user prompt
-    st.session_state.chat_history.append({"role": "user", "content": user_query})
-    with st.chat_message("user"):
-        st.markdown(user_query)
+user_query = st.chat_input("Ask any question or drill down (e.g., 'What are the products sold in South and their turnover?')")
 
-    # Generate assistant grounded response
-    with st.chat_message("assistant"):
-        with st.spinner("Analyzing metrics payload..."):
-            reply = ask_metric_copilot(
-                query=user_query,
-                report=report,
-                chat_history=st.session_state.chat_history[:-1],
-                api_key=groq_api_key,
-                model=active_model,
-            )
+# Determine if query came from text input or 1-click suggestion chip
+active_query = None
+if "pending_query" in st.session_state and st.session_state.pending_query:
+    active_query = st.session_state.pop("pending_query")
+elif user_query:
+    active_query = user_query
+
+if active_query:
+    from src.ai_advisor import is_query_in_context
+    in_scope, intent = is_query_in_context(active_query)
+
+    # 1. Zero-API Guard: Handle greetings and out-of-context queries without hitting LLM or consuming cooldown
+    if intent == "greeting" or not in_scope:
+        reply = ask_metric_copilot(
+            query=active_query,
+            report=report,
+            chat_history=st.session_state.chat_history[:-1],
+            api_key=groq_api_key,
+            model=active_model,
+            engine=engine,
+        )
+        st.session_state.chat_history.append({"role": "user", "content": active_query})
+        with st.chat_message("user"):
+            st.markdown(active_query)
+        with st.chat_message("assistant"):
             st.markdown(reply)
+        st.session_state.chat_history.append({"role": "assistant", "content": reply})
 
-    # Save reply to history
-    st.session_state.chat_history.append({"role": "assistant", "content": reply})
+        if not in_scope:
+            st.toast("⚠️ Out-of-context query intercepted locally. Zero API tokens used.", icon="🛡️")
+
+    # 2. In-Scope Commercial Query: Protected by 30-second rate limiter
+    else:
+        current_time = time.time()
+        elapsed = current_time - st.session_state.last_chat_timestamp
+
+        if elapsed < CHAT_COOLDOWN_SECONDS:
+            remaining_secs = int(CHAT_COOLDOWN_SECONDS - elapsed) + 1
+            st.toast(f"⏳ Rate limit: Please wait {remaining_secs}s before asking another question.", icon="⚠️")
+            st.warning(
+                f"⏱️ **Rate Limit Active**: Live AI queries are limited to once every 30 seconds to prevent spam and conserve API tokens. "
+                f"Please wait **{remaining_secs}s** before submitting your next question."
+            )
+        else:
+            st.session_state.last_chat_timestamp = current_time
+
+            # Display user prompt
+            st.session_state.chat_history.append({"role": "user", "content": active_query})
+            with st.chat_message("user"):
+                st.markdown(active_query)
+
+            # Generate assistant grounded response
+            with st.chat_message("assistant"):
+                with st.spinner("Analyzing metrics payload & data dimensions..."):
+                    reply = ask_metric_copilot(
+                        query=active_query,
+                        report=report,
+                        chat_history=st.session_state.chat_history[:-1],
+                        api_key=groq_api_key,
+                        model=active_model,
+                        engine=engine,
+                    )
+                    st.markdown(reply)
+
+            # Save reply to history
+            st.session_state.chat_history.append({"role": "assistant", "content": reply})

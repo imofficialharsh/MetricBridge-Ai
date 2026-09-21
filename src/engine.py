@@ -7,7 +7,7 @@ diagnostics (Category, State, and Macro-Region).
 """
 
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 import polars as pl
 
 from src.schema import (
@@ -514,3 +514,148 @@ class MetricEngine:
             top_state_decliners=decliners,
             regional_performance=regional,
         )
+
+    def query_fact_table(
+        self,
+        group_by: List[str],
+        metrics: List[str],
+        filters: Optional[Dict[str, Any]] = None,
+        order_by: Optional[str] = None,
+        limit: int = 10,
+    ) -> List[Dict[str, Any]]:
+        """
+        Dynamically executes multi-dimensional aggregations and filters on the fact table.
+        Used by the AI Copilot to answer ad-hoc questions about products, turnover, regions, and states.
+
+        Supported dimensions:
+          - 'customer_region' (South, Southeast, Northeast, Central-West, North)
+          - 'customer_state' (SP, RJ, MG, RS, PR, SC, BA, etc.)
+          - 'customer_city'
+          - 'product_category_name_english'
+          - 'year_month' (e.g. '2017-10')
+          - 'year'
+
+        Supported metrics:
+          - 'gross_revenue' (total sales turnover)
+          - 'freight_cost' (total logistics charge)
+          - 'units' (item unit volume)
+          - 'orders' (distinct order count)
+          - 'avg_item_price' (average price per item)
+          - 'aov' (average order value)
+          - 'net_margin_proxy' (gross revenue - freight cost)
+        """
+        synonyms = {
+            "region": "customer_region",
+            "customer_region": "customer_region",
+            "state": "customer_state",
+            "customer_state": "customer_state",
+            "city": "customer_city",
+            "customer_city": "customer_city",
+            "category": "product_category_name_english",
+            "product_category": "product_category_name_english",
+            "product_category_name": "product_category_name_english",
+            "product": "product_category_name_english",
+            "products": "product_category_name_english",
+            "product_category_name_english": "product_category_name_english",
+            "period": "year_month",
+            "year_month": "year_month",
+            "month": "year_month",
+            "year": "year",
+        }
+
+        # Resolve group_by columns
+        resolved_gb: List[str] = []
+        for g in group_by:
+            clean_g = synonyms.get(str(g).strip().lower())
+            if clean_g and clean_g not in resolved_gb:
+                resolved_gb.append(clean_g)
+
+        if not resolved_gb:
+            resolved_gb = ["product_category_name_english"]
+
+        lf = self._scan()
+
+        # Apply filters
+        if filters:
+            for k, v in filters.items():
+                col = synonyms.get(str(k).strip().lower())
+                if not col:
+                    continue
+                if isinstance(v, list):
+                    clean_vals = [str(x).strip().lower() for x in v]
+                    lf = lf.filter(pl.col(col).cast(pl.String).str.to_lowercase().is_in(clean_vals))
+                elif isinstance(v, (str, int, float)):
+                    val_str = str(v).strip().lower()
+                    lf = lf.filter(pl.col(col).cast(pl.String).str.to_lowercase() == val_str)
+
+        # Build metric expressions
+        metric_aliases = {
+            "gross_revenue": "gross_revenue",
+            "gross_revenue_sum": "gross_revenue",
+            "turnover": "gross_revenue",
+            "revenue": "gross_revenue",
+            "sales": "gross_revenue",
+            "freight_cost": "freight_cost",
+            "freight_cost_sum": "freight_cost",
+            "freight": "freight_cost",
+            "shipping": "freight_cost",
+            "units": "units",
+            "units_count": "units",
+            "volume": "units",
+            "quantity": "units",
+            "orders": "orders",
+            "orders_count": "orders",
+            "total_orders": "orders",
+            "avg_item_price": "avg_item_price",
+            "price": "avg_item_price",
+            "aov": "aov",
+            "net_margin_proxy": "net_margin_proxy",
+            "net_margin": "net_margin_proxy",
+            "margin": "net_margin_proxy",
+        }
+
+        norm_metrics = set()
+        for m in metrics:
+            target = metric_aliases.get(str(m).strip().lower())
+            if target:
+                norm_metrics.add(target)
+
+        if not norm_metrics:
+            norm_metrics = {"gross_revenue", "units"}
+
+        agg_exprs = []
+        if "gross_revenue" in norm_metrics:
+            agg_exprs.append(pl.col("gross_revenue").sum().round(2).alias("gross_revenue"))
+        if "freight_cost" in norm_metrics:
+            agg_exprs.append(pl.col("freight_cost").sum().round(2).alias("freight_cost"))
+        if "units" in norm_metrics:
+            agg_exprs.append(pl.len().alias("units"))
+        if "orders" in norm_metrics:
+            agg_exprs.append(pl.col("order_id").n_unique().alias("orders"))
+        if "avg_item_price" in norm_metrics:
+            agg_exprs.append(
+                (pl.col("gross_revenue").sum() / pl.len()).round(2).alias("avg_item_price")
+            )
+        if "aov" in norm_metrics:
+            agg_exprs.append(
+                (pl.col("gross_revenue").sum() / pl.col("order_id").n_unique()).round(2).alias("aov")
+            )
+        if "net_margin_proxy" in norm_metrics:
+            agg_exprs.append(
+                (pl.col("gross_revenue").sum() - pl.col("freight_cost").sum()).round(2).alias("net_margin_proxy")
+            )
+
+        # Execute aggregation
+        grouped = lf.group_by(resolved_gb).agg(agg_exprs)
+
+        # Sorting
+        sort_col = "gross_revenue" if "gross_revenue" in norm_metrics else (agg_exprs[0].meta.output_name() if agg_exprs else resolved_gb[0])
+        if order_by:
+            candidate = metric_aliases.get(str(order_by).strip().lower(), order_by)
+            if candidate in norm_metrics or candidate in resolved_gb:
+                sort_col = candidate
+
+        max_limit = min(max(int(limit), 1), 25)
+        res_df = grouped.sort(sort_col, descending=True).head(max_limit).collect()
+        return res_df.to_dicts()
+
