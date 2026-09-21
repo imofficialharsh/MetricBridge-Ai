@@ -1,4 +1,4 @@
-# ✦ AI Metric Bridge: Commercial RCA Engine
+# ✦ Metricsbridge AI: Commercial RCA Engine
 
 > **Enterprise Commercial Root Cause Analysis with Price-Volume-Mix Decomposition, Regional Logistics Diagnostics, and Groq-Powered Executive Briefing.**
 
@@ -16,7 +16,7 @@ In enterprise commerce, traditional Business Intelligence (BI) dashboards regula
 
 Did growth come from genuine market volume expansion, or did aggressive price hikes disguise volume decay? Did shipping logistics eat away the profit margin across remote distribution routes?
 
-**AI Metric Bridge** solves this through a **two-stage hybrid architecture**:
+**Metricsbridge AI** solves this through a **two-stage hybrid architecture**:
 1. **Deterministic Vectorized Math**: A high-performance [Polars](https://pola.rs/) engine computes exact **Price-Volume-Mix (PVM)** variance bridges, category Pareto movers, and regional logistics drag across 110,000+ commercial transactions in `< 5ms`.
 2. **Grounded Executive Synthesis**: A [Groq Cloud LPU](https://groq.com/) (`qwen/qwen3.8-27b`) consumes strictly serialized mathematical deltas to generate structured executive briefings and power an interactive, tool-augmented Metric Copilot with **zero math hallucinations**.
 
@@ -24,7 +24,7 @@ Did growth come from genuine market volume expansion, or did aggressive price hi
 
 ## Core Architectural Paradigm: *"Math First, LLM Second"*
 
-| Dimension | Traditional BI (PowerBI / Tableau) | Naive LLM Agents (LangChain / Text-to-SQL) | AI Metric Bridge (This Engine) |
+| Dimension | Traditional BI (PowerBI / Tableau) | Naive LLM Agents (LangChain / Text-to-SQL) | Metricsbridge AI (This Engine) |
 | :--- | :--- | :--- | :--- |
 | **Mathematical Precision** | 100% (Manual DAX / SQL queries) | Unreliable (~65-75% accuracy on arithmetic) | **100% Deterministic (Vectorized Polars)** |
 | **Root Cause Depth** | Surface KPIs (User must slice manually) | Superficial, unstructured text | **Exact PVM Decomposition + Regional Drag** |
@@ -34,7 +34,7 @@ Did growth come from genuine market volume expansion, or did aggressive price hi
 | **Hallucination Risk** | 0% | High (prone to inventing numbers) | **0% (Grounded prompt injection)** |
 
 ### Why This Design Wins
-- **Never Let LLMs Do Math**: Language models are probabilistic token predictors, not calculators. By decoupling mathematical computation from language generation, Metric Bridge ensures every percentage, dollar amount, and variance figure is verified before the LLM ever sees it.
+- **Never Let LLMs Do Math**: Language models are probabilistic token predictors, not calculators. By decoupling mathematical computation from language generation, Metricsbridge AI ensures every percentage, dollar amount, and variance figure is verified before the LLM ever sees it.
 - **In-Memory Zero-Copy Slicing**: Scanning Snappy-compressed Parquet files via Polars avoids database latency and eliminates warehouse compute bills.
 - **Strict Guardrails**: Includes rate-limiting (30s cooldown), schema validation via Pydantic, and automatic fallback to deterministic rule-based analysis if an API key is not present.
 

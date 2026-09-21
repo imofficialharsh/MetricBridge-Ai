@@ -55,7 +55,7 @@ BACKEND_GROQ_KEY = _resolve_backend_secret("GROQ_API_KEY", "")
 # Streamlit Page Config
 # -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="AI Metric Bridge | Commercial RCA Engine",
+    page_title="Metricsbridge AI | Commercial RCA Engine",
     page_icon="✦",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -1365,7 +1365,7 @@ def render_executive_table(
 # =============================================================================
 # RCA METHODOLOGY BLUEPRINT MODAL
 # =============================================================================
-@st.dialog("AI Metric Bridge — RCA Methodology & Mathematical Framework", width="large")
+@st.dialog("Metricsbridge AI — RCA Methodology & Mathematical Framework", width="large")
 def show_methodology_dialog():
     """Display comprehensive system architecture diagram and engineering breakdown."""
     st.markdown(
@@ -1466,7 +1466,7 @@ with st.sidebar:
     st.markdown(
         """
         <div class="brand-container">
-            <div class="brand-title">AI Metric Bridge</div>
+            <div class="brand-title">Metricsbridge AI</div>
             <div class="brand-sub">COMMERCIAL INTELLIGENCE & RCA</div>
             <div class="creator-badge"><span style="color: #38BDF8; font-size: 0.82rem;">✦</span> Engineered by Harsh Kumar</div>
         </div>
@@ -1578,7 +1578,7 @@ status_sym = "▲" if margin_delta >= 0 else "▼"
 # -----------------------------------------------------------------------------
 col_head_left, col_head_right = st.columns([3.0, 2.0], gap="medium")
 with col_head_left:
-    st.markdown('<div class="main-title">AI Metric Bridge: Commercial RCA Engine</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-title">Metricsbridge AI: Commercial RCA Engine</div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="subtitle">Enterprise Commercial Root Cause Analysis with Price-Volume-Mix Decomposition, '
         'Regional Logistics Diagnostics, and Groq-Powered Executive Briefing.</div>',
@@ -2280,7 +2280,7 @@ if "chat_history" not in st.session_state:
         {
             "role": "assistant",
             "content": (
-                f"Hello! I am your **AI Metric Bridge Copilot** for the **{period_a} ➔ {period_b}** comparison. "
+                f"Hello! I am your **Metricsbridge AI Copilot** for the **{period_a} ➔ {period_b}** comparison. "
                 "Ask me any question about revenue, PVM effects, freight logistics drag, or category and regional performance."
             ),
         }

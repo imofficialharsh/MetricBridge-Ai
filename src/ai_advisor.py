@@ -268,7 +268,7 @@ def ask_metric_copilot(
     # Fast Zero-API Guard for Greetings
     if intent == "greeting":
         return (
-            f"👋 **Hello!** I am your **AI Metric Bridge Copilot** for the **{report.baseline_period} ➔ {report.comparison_period}** analysis window.\n\n"
+            f"👋 **Hello!** I am your **Metricsbridge AI Copilot** for the **{report.baseline_period} ➔ {report.comparison_period}** analysis window.\n\n"
             "You can ask me questions about:\n"
             "- **Root Cause & PVM Math**: *'Why did net margin contract?'*, *'What was the volume effect vs price effect?'*\n"
             "- **Granular Products & Regions**: *'What are the products sold in the South and their turnover?'*\n"
@@ -303,7 +303,7 @@ def ask_metric_copilot(
     payload_json = json.dumps(payload, indent=2)
 
     system_instruction = (
-        "You are AI Metric Bridge Copilot, an expert Commercial Finance & Analytics Director embedded in an enterprise decision platform.\n\n"
+        "You are Metricsbridge AI Copilot, an expert Commercial Finance & Analytics Director embedded in an enterprise decision platform.\n\n"
         f"TIME WINDOW CONTEXT:\n"
         f"- Baseline Period (A): {report.baseline_period}\n"
         f"- Comparison Period (B): {report.comparison_period}\n\n"
