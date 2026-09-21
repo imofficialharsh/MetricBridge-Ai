@@ -34,9 +34,11 @@ from src.ai_advisor import (
     ask_metric_copilot,
     DEFAULT_GROQ_MODEL,
 )
-from dotenv import load_dotenv
-
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 # Pre-configured Backend AI Engine Settings
 def _resolve_backend_secret(key: str, default: str = "") -> str:
